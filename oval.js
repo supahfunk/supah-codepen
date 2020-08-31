@@ -104,14 +104,14 @@ Fragment
     void main() {
       vec2 uv = vUv;
       
-      uv.y *= 2.;
-      uv.y += 0.14;
+      uv.y *= 3.;
+      uv.y -= 0.3;
       uv.y -= uTime;
 
 
-      // uv.y += sin(2. * pi * uTime) * vPos.x * 0.1;
-      // float distort = 1. - smoothstep(0., 0.1, vPos.z) * smoothstep(-1., -0.9, vPos.y);
-      // uv.y += distort * 0.01 * -cos(vPos.x * 2. * pi);
+      float distort = smoothstep(1., .9, vPos.y - vPos.z * 0.1);
+      distort += smoothstep(-1., -0.9, vPos.y + vPos.z * 0.1);
+      uv.y += (.2 + distort) * 0.1;
 
       
       vec3 col = vec3(0., 0., 0.);
@@ -126,7 +126,6 @@ Fragment
       col += smoothstep(-0.8, 1., vPos.y * 0.4);
 
       col *= mix(bg, front, smoothstep(0.6, 1., vPos.z));
-
 
 
 
