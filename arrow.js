@@ -30,39 +30,15 @@ const sketch = ({ context }) => {
     canvas: context.canvas
   })
 
-  // WebGL background color
   renderer.setClearColor("#eeeeee", 1)
 
-  // Setup a camera
   const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 100)
   camera.position.set(0, 0, 
     mapRange(window.innerWidth, 375, 2560, 5, 1.5)
   )
   camera.lookAt(new THREE.Vector3())
-
-  // Setup camera controller
-  // const controls = new THREE.OrbitControls(camera, context.canvas)
-
-  // Setup your scene
   const scene = new THREE.Scene()
-  // Fog
-  const color = 0x000000;
-  const near = -1;
-  const far = 9;
-  scene.fog = new THREE.Fog(color, near, far);
 
-  const ambient = new THREE.AmbientLight(0xcccccc)
-  scene.add(ambient)
-
-  const foreLight = new THREE.DirectionalLight(0xffffff, 0.5)
-  foreLight.position.set(15, 15, 20)
-  scene.add(foreLight)
-
-  const backLight = new THREE.DirectionalLight(0xffffff, 0.5)
-  backLight.position.set(-15, 15, 20)
-  scene.add(backLight)
-
-  // Setup a geometry
   const planeGeometry = new THREE.PlaneBufferGeometry(1, 1, 100, 100)
 
   const texture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/supahfunk/supah-codepen/master/breathe.png?v=4')
@@ -81,61 +57,38 @@ const sketch = ({ context }) => {
     varying vec2 vUv;
     varying vec3 vPos;
     varying vec3 vNormal;
-
     uniform float uTime;
 
     #define PI 3.14159265
-
-  
-    mat4 rotation3d(vec3 axis, float angle) {
-      axis = normalize(axis);
-      float s = sin(angle);
-      float c = cos(angle);
-      float oc = 1.0 - c;
-
-      return mat4(
-        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
-        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
-        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
-        0.0,                                0.0,                                0.0,                                1.0
-      );
-    }
-
-
-    vec3 rotate(vec3 v, vec3 axis, float angle) {
-      return (rotation3d(axis, angle) * vec4(v, 1.0)).xyz;
-    }
-
 
     void main() {
       vec3 pos = position;
       vUv = uv;
 
+      // Dimensioni
       pos.y *= 2.;
       pos.x *= 0.3;
 
-
+      // Settings animazione
       float length = 2.5;
       float start = -1. - length;
       float end = 1. + length;
       float rotations = 3.;
 
-      // Animazione OK
+      // Animazione Loop
       // float time = sin(uTime * 2. * PI) * 0.5 + 0.5;
       // time *= 4.;
       // float y = smoothstep(start + time, start + length + abs(time), pos.y);
 
-
+      // Animazione con restart
       float time = mod(uTime, .5);
-      
       time *= 10.;
       float y = smoothstep(start + time, start + length + time, pos.y);
-
       if (uTime >= .5) {
         y -= 1.;
       }
 
-
+      // Twist
       float theta = -y * PI * rotations;
       float c = cos( theta);
       float s = sin( theta);
@@ -144,9 +97,9 @@ const sketch = ({ context }) => {
         0, 1, 0,
         -s, 0, c
       );
-      
       pos *= twistY;
 
+      // Varying
       vNormal = normal * twistY * vec3(modelViewMatrix);
       vPos = pos;
 
@@ -190,52 +143,43 @@ const sketch = ({ context }) => {
     void main() {
       vec2 uv = vUv;
       
-      vec3 light = vec3(0., 10., -10.);
-      float intensity = 1.;
-      light = normalize(light) * intensity;
-
+      // Normal
       vec3 normal = vNormal;
       normal += uv.x;
 
+      // Luci 1
+      vec3 light = vec3(0., 10., -10.);
+      float intensity = 1.;
+      light = normalize(light) * intensity;
       float dProd = max(0.0, dot(normal, light));
   
+      // Colors
       vec3 col = mix(uColor1, uColor2, uv.y);
-
       col = mix(col, vec3(dProd), 0.1);
 
-      // Luci
+      // Luci 2
       col +=  smoothstep(1.0, 0.98, uv.x) * vPos.z * (1. - uFront) * .5;
-
 
       // Texture
       uv = rotateUV(uv, PI * uRotation);
-      // uv.x *= 2.03;
       uv.x -= .25;
       uv.x *= 2.;
       uv.y = smoothstep(0.05, 0.95, uv.y) * uFront;
-
       uv.x = clamp(uv.x, 0., 1.);
-
-
-      // uv.x -=  uv.y * 0.1;
-
       col += 1. - vec3(texture2D(uTexture1, uv).rgb);
 
-
-      // arrow
+      // Arrow coda
       float arrowLength = 10.;
       float y = vUv.x * 2. - 1.;
       float arrow = abs(y) + vUv.y * arrowLength;
       arrow = smoothstep(0.99, 1., arrow);
 
-      // float arrow2 = abs(y) - (vUv.y - 1.) * arrowLength;
+      // Arrow punta
       float arrow2 = 1. - (abs(y) + (vUv.y - 1.) * arrowLength);
       arrow *= smoothstep(0.95, 1., arrow2);
-
       if (arrow < 0.9) discard;
 
-
-
+      // Return
       gl_FragColor = vec4(col, 1.);
     }
   `
@@ -292,9 +236,6 @@ const sketch = ({ context }) => {
   group.add(mesh2)
 
 
-
-
-
   /*------------------------------
   Plane Vertex
   ------------------------------*/
@@ -327,7 +268,6 @@ const sketch = ({ context }) => {
     }
   `
 
-  
   /*------------------------------
   Plane Material Shader
   ------------------------------*/
@@ -344,20 +284,18 @@ const sketch = ({ context }) => {
   // scene.add(plane)
 
 
-
+  /*------------------------------
+  Mouse Events
+  ------------------------------*/
   const handleMouse = e => {
     mouse.x = e.clientX || e.touches[0].clientX
     mouse.y = e.clientY || e.touches[0].clientY
   }
-
-
   const handleClick = (e) => {
     mouse.click = e.type === 'mousedown' || e.type === 'touchstart' ? -1 : 0
   }
-
   window.addEventListener('mousemove', handleMouse)
   window.addEventListener('touchmove', handleMouse)
-
   document.addEventListener('mousedown', handleClick)
   document.addEventListener('mouseup', handleClick)
   window.addEventListener('touchend', handleClick)
@@ -367,21 +305,36 @@ const sketch = ({ context }) => {
   })
 
 
-  const easeInOutQuad = t => t<.5 ? 2*t*t : -1+(4-2*t)*t
-  const easeOutCubic = t => (--t)*t*t+1
+  /*------------------------------
+  Easings Functions
+  ------------------------------*/
+  // const easeInOutQuad = t => t<.5 ? 2*t*t : -1+(4-2*t)*t
+  // const easeOutCubic = t => (--t)*t*t+1
+  // const easeInOutQuint = t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
 
-  const easeInOutQuint = t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
 
-
-
-
+  /*------------------------------
+  Return
+  ------------------------------*/
   return {
+    /*------------------------------
+    Resize
+    ------------------------------*/
     resize({ pixelRatio, viewportWidth, viewportHeight }) {
       renderer.setPixelRatio(pixelRatio)
       renderer.setSize(viewportWidth, viewportHeight, false)
       camera.aspect = viewportWidth / viewportHeight
+      camera.position.set(0, 0, 
+        mapRange(window.innerWidth, 375, 2560, 5, 1.5)
+      )
+      mouse.x = window.innerWidth / 2
+      mouse.y = window.innerHeight / 2
       camera.updateProjectionMatrix()
     },
+
+    /*------------------------------
+    Render
+    ------------------------------*/
     render({ time, playhead }) {
       if (material) {
         material.uniforms.uTime.value = playhead
@@ -398,22 +351,20 @@ const sketch = ({ context }) => {
         mapRange(mouse.x, 0, window.innerWidth, -Math.PI * 0.5, Math.PI * 0.5),
         0.03
       )
-
       rotation.z = lerp(
         rotation.z,
         mouse.click,
         0.1
       )
-
       group.rotation.x = rotation.x
       group.rotation.y = rotation.y
       group.position.z = rotation.z
 
-      // controls.update()
       renderer.render(scene, camera)
     },
+
+
     unload() {
-      // controls.dispose()
       renderer.dispose()
     }
   }
